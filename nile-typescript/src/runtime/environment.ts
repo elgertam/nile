@@ -1,4 +1,11 @@
-/**
+  /**
+   * Initialize the environment with a parser
+   */
+  init(parser: any): void {
+    // This will be implemented by the builtins module using initBuiltins
+    // We keep this as a placeholder for backward compatibility
+  }
+}/**
  * Nile runtime environment implementation
  */
 import { 
