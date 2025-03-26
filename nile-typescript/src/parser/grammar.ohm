@@ -1,0 +1,126 @@
+Nile {
+  // Top level rule for the entire program
+  Program = Definition*
+
+  // Definitions (types, operations, processes)
+  Definition = TypeDef | ProcessDef | OpDef
+
+  // Type definitions
+  TypeDef = "type" space TypeName ("=" Type)? -- withType
+  
+  // Types
+  Type = ProcessType | SimpleType
+  SimpleType = TupleType | RecordType | TypeName
+  TupleType = "(" Type ("," Type)+ ")"
+  RecordType = "(" TypedVar ("," TypedVar)+ ")"
+  ProcessType = SimpleType ">>" SimpleType
+  
+  // Operations
+  OpDef = OpSig OpBody
+
+  OpSig = OutfixSig | PrefixSig | PostfixSig | InfixSig
+  OutfixSig = OpName Pattern OpName ":" SimpleType
+  PrefixSig = OpName Pattern ":" SimpleType
+  PostfixSig = Pattern OpName ":" SimpleType
+  InfixSig = Pattern (space OpName | null) space Pattern ":" SimpleType
+
+  OpBody = (nonemptyIndentedLine VarDef)* nonemptyIndentedLine Expr -- withBody
+         | -- empty
+
+  // Process definitions
+  ProcessDef = ProcessSig Prologue EOL+ ProcessBody? Epilogue
+  
+  ProcessSig = ProcessName space TuplePat ":" Type
+  Prologue = Block
+  ProcessBody = indentation ForEach Pattern Block
+  Epilogue = Block
+  ForEach = ("∀" | "for" space "each" | "for" space "all") space
+
+  // Patterns and variable declarations
+  Pattern = VarPat | TuplePat
+  VarPat = TypedVar | (VarName | "_") -- simple
+  TuplePat = "(" Pattern? ("," Pattern)* ")"
+  TypedVar = VarName ":" Type
+
+  // Variable definitions
+  VarDef = Pattern space "=" space Expr
+
+  // Expressions
+  Expr = Pipeline | OpExpr1
+  
+  // Operation expressions with precedence levels
+  OpExpr1 = OpExpr1 space opsym1 space OpExpr2 -- binop
+         | OpExpr2
+  OpExpr2 = OpExpr2 space opsym2 space OpExpr3 -- binop
+         | OpExpr3
+  OpExpr3 = OpExpr3 space opsym3 space OpExpr4 -- binop
+         | OpExpr4
+  OpExpr4 = OpExpr4 space opsym4 space OpExpr5 -- binop
+         | OpExpr5
+  OpExpr5 = OpExpr5 space OpExpr6 -- binop
+         | OpExpr6
+  OpExpr6 = OpName RecFieldExpr -- prefix
+         | RecFieldExpr OpName -- postfix
+         | OpName RecFieldExpr OpName -- outfix
+         | RecFieldExpr
+
+  // Record field access
+  RecFieldExpr = RecFieldExpr "." VarName -- field
+              | PrimaryExpr
+
+  // Primary expressions
+  PrimaryExpr = NumExpr
+              | VarExpr
+              | ParenExpr
+              | TupleExpr
+              | CondExpr
+
+  NumExpr = number
+  VarExpr = VarName
+  ParenExpr = "(" Expr ")"
+  TupleExpr = "(" Expr? ("," Expr)* ")"
+  CondExpr = "{" CondCase+ Expr ("," "otherwise")? "}"
+  CondCase = Expr "," "if" space Expr (EOL+ | space ";" space)
+
+  // Process pipelines
+  Pipeline = RArrow Process (Pipeline | null)
+  Process = ProcessInst | VarExpr
+  ProcessInst = ProcessName space TupleExpr
+
+  // Statements
+  Statement = InStmt | OutStmt | IfStmt | SubStmt
+  
+  InStmt = "<<" space Expr (space "<<" space Expr)*
+  OutStmt = ">>" space Expr (space ">>" space Expr)*
+  IfStmt = indentation "if" space IfBody
+  IfBody = Expr Block (ElseIf | Else)?
+  ElseIf = atIndentation "else" space "if" space IfBody
+  Else = atIndentation "else" Block
+  SubStmt = Pipeline
+
+  // Block
+  Block = (pastIndentation VarDef)* (pastIndentation Statement)*
+
+  // Lexical rules
+  indentation = &{ return true; } // Tracks current indentation level
+  pastIndentation = &{ return true; } // Checks if indentation is past current level
+  atIndentation = &{ return true; } // Checks if indentation matches current level
+
+  EOL = "\n" | "\r\n" | "\r"
+  comment = "--" (~EOL any)*
+  space += comment?
+  
+  opsym1 = "∧" | "∨"
+  opsym2 = "<" | ">" | "≤" | "≥" | "≠" | "=" | "≈" | "≉"
+  opsym3 = ~opsym1 ~opsym2 ~opsym4 ("-" | "~" | "!" | "@" | "#" | "$" | "^" | "&" | "*" | "+" | "|" | "¬" | "²" | "³" | "‖" | "⌈" | "⌉" | "⌊" | "⌋" | "▷" | "◁" | "⟂" | "?" | "[" | "]")
+  opsym4 = "/" | "∙" | "×" | "%"
+  OpName = opsym+ | "\\" alpha alnum*
+  
+  number = digit+ ("." digit+)? | "∞"
+  TypeName = alnum+
+  ProcessName = alnum+
+  VarName = alpha alnum* Prime?
+  Prime = "′" | "'"
+  
+  RArrow = (space ("→" | "->") space EOL*)
+}
