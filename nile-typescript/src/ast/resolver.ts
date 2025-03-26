@@ -22,27 +22,27 @@ export function resolveType(type: Type, env: Environment): Type {
     }
     return type; // Keep the reference if not found
   }
-  
+
   // Recursively resolve inner types for compound types
   if (type.type === 'TupleType') {
     const tupleType = { ...type } as any;
     tupleType.types = tupleType.types.map((innerType: Type) => resolveType(innerType, env));
     return tupleType;
   }
-  
+
   if (type.type === 'RecordType') {
     const recordType = { ...type } as any;
     recordType.fields = recordType.fields.map((field: VarDecl) => resolveVarDecl(field, env));
     return recordType;
   }
-  
+
   if (type.type === 'ProcessType') {
     const processType = { ...type } as any;
     processType.intype = resolveType(processType.intype, env);
     processType.outtype = resolveType(processType.outtype, env);
     return processType;
   }
-  
+
   return type;
 }
 
@@ -56,7 +56,7 @@ export function resolveVarDecl(vardecl: VarDecl, env: Environment): VarDecl {
     varType: resolvedType,
     getType: () => resolvedType
   };
-  
+
   return env.addVardecl(newVarDecl);
 }
 
@@ -65,16 +65,16 @@ export function resolveVarDecl(vardecl: VarDecl, env: Environment): VarDecl {
  */
 export function resolveVarDeclWithType(vardecl: VarDecl, env: Environment, type: Type): VarDecl {
   // If the vardecl has AnyType, use the provided type instead
-  const resolvedType = vardecl.varType.type === 'AnyType' ? 
-    resolveType(type, env) : 
+  const resolvedType = vardecl.varType.type === 'AnyType' ?
+    resolveType(type, env) :
     resolveType(vardecl.varType, env);
-  
+
   const newVarDecl = {
     ...vardecl,
     varType: resolvedType,
     getType: () => resolvedType
   };
-  
+
   return env.addVardecl(newVarDecl);
 }
 
@@ -83,11 +83,11 @@ export function resolveVarDeclWithType(vardecl: VarDecl, env: Environment, type:
  */
 export function resolveTuplePatWithType(pat: TuplePat, env: Environment, type: Type): TuplePat {
   const resolvedType = resolveType(type, env);
-  
+
   if (resolvedType.type !== 'TupleType') {
     throw new Error(`Cannot resolve tuple pattern with non-tuple type: ${resolvedType.type}`);
   }
-  
+
   const tupleType = resolvedType as any;
   const resolvedElements = pat.elements.map((element, i) => {
     if (i < tupleType.types.length) {
@@ -95,7 +95,7 @@ export function resolveTuplePatWithType(pat: TuplePat, env: Environment, type: T
     }
     return resolveVarDecl(element as VarDecl, env);
   });
-  
+
   return {
     ...pat,
     elements: resolvedElements,
@@ -120,7 +120,7 @@ export function resolveVarExpr(expr: VarExpr, env: Environment): VarExpr {
   if (!vardecl) {
     throw new Error(`Variable not found: ${expr.variable.name}`);
   }
-  
+
   return {
     ...expr,
     variable: vardecl,
@@ -134,7 +134,7 @@ export function resolveVarExpr(expr: VarExpr, env: Environment): VarExpr {
 export function resolveRecFieldExpr(expr: RecFieldExpr, env: Environment): RecFieldExpr {
   const resolvedRecord = resolveNode(expr.record, env) as any;
   const recordType = getNodeType(resolvedRecord);
-  
+
   // If field is a number, use it directly; otherwise, get the field index by name
   let fieldIndex: number;
   if (typeof expr.field === 'number') {
@@ -149,11 +149,11 @@ export function resolveRecFieldExpr(expr: RecFieldExpr, env: Environment): RecFi
       throw new Error(`Cannot access field of non-record/tuple type: ${recordType.type}`);
     }
   }
-  
+
   if (fieldIndex < 0) {
     throw new Error(`Field not found: ${expr.field}`);
   }
-  
+
   return {
     ...expr,
     record: resolvedRecord,
@@ -180,7 +180,7 @@ export function resolveOpExpr(expr: OpExpr, env: Environment): OpExpr {
     // Chained relational expressions need special handling
     return resolveNode(expr.unchainRelational(), env) as OpExpr;
   }
-  
+
   // Resolve the argument(s)
   let resolvedArg: any;
   if (Array.isArray(expr.arg)) {
@@ -188,7 +188,7 @@ export function resolveOpExpr(expr: OpExpr, env: Environment): OpExpr {
   } else {
     resolvedArg = resolveNode(expr.arg, env);
   }
-  
+
   // Get the type of the arg(s)
   let argType: Type;
   if (Array.isArray(resolvedArg)) {
@@ -199,13 +199,13 @@ export function resolveOpExpr(expr: OpExpr, env: Environment): OpExpr {
   } else {
     argType = getNodeType(resolvedArg);
   }
-  
+
   // Find the matching operation in the environment
   const op = env.getOpdef(expr.op.sig.name, expr.fixity, argType);
   if (!op) {
     throw new Error(`Operation not found: ${expr.op.sig.name} with fixity ${expr.fixity}`);
   }
-  
+
   return {
     ...expr,
     op,
@@ -219,7 +219,7 @@ export function resolveOpExpr(expr: OpExpr, env: Environment): OpExpr {
  */
 export function resolveProcessInst(inst: ProcessInst, env: Environment): ProcessInst {
   const resolvedArg = resolveNode(inst.arg, env) as any;
-  
+
   // If processdef is a string, look it up in the environment
   let processdef: ProcessDef;
   if (typeof inst.processdef === 'string') {
@@ -231,7 +231,7 @@ export function resolveProcessInst(inst: ProcessInst, env: Environment): Process
   } else {
     processdef = inst.processdef as ProcessDef;
   }
-  
+
   return {
     ...inst,
     processdef,
@@ -246,14 +246,14 @@ export function resolveProcessInst(inst: ProcessInst, env: Environment): Process
 export function resolveVarDef(vardef: VarDef, env: Environment): VarDef {
   const resolvedRvalue = resolveNode(vardef.rvalue, env) as any;
   const rvalueType = getNodeType(resolvedRvalue);
-  
+
   let resolvedLvalue: VarDecl | TuplePat;
   if (vardef.lvalue.type === 'VarDecl') {
     resolvedLvalue = resolveVarDeclWithType(vardef.lvalue as VarDecl, env, rvalueType);
   } else {
     resolvedLvalue = resolveTuplePatWithType(vardef.lvalue as TuplePat, env, rvalueType);
   }
-  
+
   return {
     ...vardef,
     lvalue: resolvedLvalue,
@@ -267,7 +267,7 @@ export function resolveVarDef(vardef: VarDef, env: Environment): VarDef {
 export function resolveOpSig(sig: OpSig, env: Environment): OpSig {
   const resolvedParam = resolveNode(sig.param, env) as any;
   const resolvedType = resolveType(sig.returnType, env);
-  
+
   return {
     ...sig,
     param: resolvedParam,
@@ -281,30 +281,30 @@ export function resolveOpSig(sig: OpSig, env: Environment): OpSig {
  */
 export function resolveOpDef(def: OpDef, env: Environment): OpDef {
   env.pushScope();
-  
+
   const resolvedSig = resolveOpSig(def.sig, env) as any;
   let resolvedBody: any;
-  
+
   if (typeof def.body === 'function') {
     resolvedBody = def.body;
   } else {
     resolvedBody = resolveNode(def.body, env);
   }
-  
+
   env.popScope();
-  
+
   const result = {
     ...def,
     sig: resolvedSig,
     body: resolvedBody,
     getType: () => resolvedSig.getType(),
     matchSig: (name: string, fixity: string, argType: Type) => {
-      return resolvedSig.name === name && 
-             resolvedSig.fixity === fixity && 
+      return resolvedSig.name === name &&
+             resolvedSig.fixity === fixity &&
              areTypesEqual(resolvedSig.param.getType(), argType);
     }
   };
-  
+
   return env.addOpdef(result);
 }
 
@@ -314,14 +314,14 @@ export function resolveOpDef(def: OpDef, env: Environment): OpDef {
 export function resolveProcessSig(sig: ProcessSig, env: Environment): ProcessSig {
   const resolvedParam = resolveNode(sig.param, env) as any;
   const resolvedType = resolveType(sig.processType, env);
-  
+
   const result = {
     ...sig,
     param: resolvedParam,
     processType: resolvedType,
     getType: () => resolvedType
   };
-  
+
   // Add a provisional process definition to support recursive references
   env.addProcessdef({
     type: 'ProcessDef',
@@ -331,7 +331,7 @@ export function resolveProcessSig(sig: ProcessSig, env: Environment): ProcessSig
     epilogue: () => {},
     getType: () => resolvedType
   });
-  
+
   return result;
 }
 
@@ -339,16 +339,16 @@ export function resolveProcessSig(sig: ProcessSig, env: Environment): ProcessSig
  * Resolve a process body in the context of a specific type
  */
 export function resolveProcessBodyWithType(body: ProcessBody, env: Environment, type: Type): ProcessBody {
-  const intype = type.type === 'ProcessType' ? 
-    (type as any).intype : 
+  const intype = type.type === 'ProcessType' ?
+    (type as any).intype :
     type;
-  
+
   const resolvedForpat = body.forpat.type === 'VarDecl' ?
     resolveVarDeclWithType(body.forpat as VarDecl, env, intype) :
     resolveTuplePatWithType(body.forpat as TuplePat, env, intype);
-  
+
   const resolvedBlock = resolveNode(body.block, env) as any;
-  
+
   return {
     ...body,
     forpat: resolvedForpat,
@@ -361,18 +361,18 @@ export function resolveProcessBodyWithType(body: ProcessBody, env: Environment, 
  */
 export function resolveProcessDef(def: ProcessDef, env: Environment): ProcessDef {
   env.pushScope();
-  
+
   const resolvedSig = resolveProcessSig(def.sig, env) as any;
   let resolvedPrologue: any;
   let resolvedBody: any;
   let resolvedEpilogue: any;
-  
+
   if (typeof def.prologue === 'function') {
     resolvedPrologue = def.prologue;
   } else {
     resolvedPrologue = resolveNode(def.prologue, env);
   }
-  
+
   if (def.body) {
     if (typeof def.body === 'function') {
       resolvedBody = def.body;
@@ -390,15 +390,15 @@ export function resolveProcessDef(def: ProcessDef, env: Environment): ProcessDef
       env.input = [];
     });
   }
-  
+
   if (typeof def.epilogue === 'function') {
     resolvedEpilogue = def.epilogue;
   } else {
     resolvedEpilogue = resolveNode(def.epilogue, env);
   }
-  
+
   env.popScope();
-  
+
   const result = {
     ...def,
     sig: resolvedSig,
@@ -407,7 +407,7 @@ export function resolveProcessDef(def: ProcessDef, env: Environment): ProcessDef
     epilogue: resolvedEpilogue,
     getType: () => resolvedSig.getType()
   };
-  
+
   return env.addProcessdef(result);
 }
 
@@ -417,7 +417,7 @@ export function resolveProcessDef(def: ProcessDef, env: Environment): ProcessDef
 export function resolveBlock(block: Block, env: Environment): Block {
   const resolvedVardefs = block.vardefs.map(v => resolveVarDef(v, env));
   const resolvedStmts = block.stmts.map(s => resolveNode(s, env));
-  
+
   return {
     ...block,
     vardefs: resolvedVardefs,
@@ -431,9 +431,9 @@ export function resolveBlock(block: Block, env: Environment): Block {
  */
 export function resolveNode(node: Node, env: Environment): Node {
   if (!node) return node;
-  
+
   const location = (node as any).location;
-  
+
   switch (node.type) {
     case 'TypeRef':
       return resolveType(node as Type, env);
@@ -466,12 +466,12 @@ export function resolveNode(node: Node, env: Environment): Node {
     default:
       // For nodes we don't have specific handlers for, try to resolve their properties
       const result: any = { ...node };
-      
+
       // Add back location info
       if (location) {
         result.location = location;
       }
-      
+
       // We need to handle node-specific properties, but as a fallback
       // we try to resolve any properties that look like AST nodes
       for (const key in result) {
@@ -487,7 +487,7 @@ export function resolveNode(node: Node, env: Environment): Node {
           });
         }
       }
-      
+
       return result;
   }
 }
@@ -498,10 +498,10 @@ export function resolveNode(node: Node, env: Environment): Node {
 export function resolveWithSourceRange(node: Node, env: Environment): Node {
   const range = (node as any).location;
   const result = resolveNode(node, env);
-  
+
   if (range && result && typeof result === 'object') {
     (result as any).location = range;
   }
-  
+
   return result;
 }

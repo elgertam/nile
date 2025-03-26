@@ -1,15 +1,8 @@
-  /**
-   * Initialize the environment with a parser
-   */
-  init(parser: any): void {
-    // This will be implemented by the builtins module using initBuiltins
-    // We keep this as a placeholder for backward compatibility
-  }
-}/**
+/**
  * Nile runtime environment implementation
  */
-import { 
-  Type, TypeDef, VarDecl, OpDef, ProcessDef, ProcessInst, 
+import {
+  Type, TypeDef, VarDecl, OpDef, ProcessDef, ProcessInst,
   Expression, Statement
 } from '../ast/nodes';
 
@@ -84,7 +77,7 @@ export class Environment {
     if (vardecl.name === '_') {
       return vardecl;
     }
-    
+
     const scope = this.scopes[this.scopes.length - 1];
     scope[vardecl.name] = vardecl;
     return vardecl;
@@ -254,6 +247,6 @@ export class Environment {
    * Initialize the environment with a parser
    */
   init(parser: any): void {
-    // This will be implemented once we have the parser
+    // This will be implemented by the builtins module using initBuiltins
   }
 }

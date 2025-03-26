@@ -18,10 +18,17 @@ import { Environment } from '../runtime/environment';
 
 // Helper to create a source location from Ohm nodes
 function createLocation(matchResult: ohm.MatchResult, node: ohm.Node): { start: number, end: number } {
-  const sourceString = matchResult.input;
   return {
     start: node.source.startIdx,
     end: node.source.endIdx
+  };
+}
+
+// Fix other Interval issues by creating proper wrapper functions
+function createLocationFromInterval(interval: ohm.Interval): { start: number, end: number } {
+  return {
+    start: interval.startIdx,
+    end: interval.endIdx
   };
 }
 
@@ -137,7 +144,7 @@ export function createSemantics(grammar: ohm.Grammar): ohm.Semantics {
       if (!varDecl) {
         throw new Error(`Variable not found: ${name.sourceString}`);
       }
-      
+
       return {
         type: 'VarExpr',
         variable: varDecl,
@@ -148,7 +155,7 @@ export function createSemantics(grammar: ohm.Grammar): ohm.Semantics {
 
     // Implement other semantic actions based on the grammar...
     // This is a starting point, you'll need to add many more operations
-    
+
     // For now, a fallback that returns a basic Node for unimplemented rules
     _default(children) {
       const childResults = children.map(child => {
@@ -158,7 +165,7 @@ export function createSemantics(grammar: ohm.Grammar): ohm.Semantics {
           return child.toAST(this.args.env);
         }
       });
-      
+
       return {
         type: this.ctorName,
         children: childResults,
@@ -179,10 +186,10 @@ export function parseNile(sourceCode: string, env: Environment): Node[] {
   const grammar = loadGrammar();
   const semantics = createSemantics(grammar);
   const matchResult = grammar.match(sourceCode, 'Program');
-  
+
   if (matchResult.failed()) {
     throw new Error(`Parse error: ${matchResult.message}`);
   }
-  
+
   return semantics(matchResult).toAST(env) as Node[];
 }

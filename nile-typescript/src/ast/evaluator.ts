@@ -141,7 +141,16 @@ export function evalOpBody(body: OpBody, env: Environment): any {
  * Evaluate an operation expression
  */
 export function evalOpExpr(expr: OpExpr, env: Environment): any {
-  const arg = evalNode(expr.arg, env);
+  // Handle the arg which could be Expression or [Expression, Expression]
+  let arg: any;
+
+  if (Array.isArray(expr.arg)) {
+    // Handle array of expressions
+    arg = expr.arg.map(a => evalNode(a, env));
+  } else {
+    // Handle single expression
+    arg = evalNode(expr.arg, env);
+  }
 
   // Handle built-in operations implemented as functions
   if (typeof expr.op.body === 'function') {
@@ -344,11 +353,6 @@ export function evalIfStmt(stmt: IfStmt, env: Environment): void {
     evalBlock(stmt.elseBlock, env);
   }
 }
-
-/**
- * Exception type for subprocess statements
- */
-export const SubStmtException = {};
 
 /**
  * Evaluate a subprocess statement

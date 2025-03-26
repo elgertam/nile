@@ -27,12 +27,12 @@ export function areTypesEqual(type1: Type, type2: Type): boolean {
   if (type1.type === 'TupleType' && type2.type === 'TupleType') {
     const tupleType1 = type1 as TupleType;
     const tupleType2 = type2 as TupleType;
-    
+
     if (tupleType1.types.length !== tupleType2.types.length) {
       return false;
     }
-    
-    return tupleType1.types.every((innerType, index) => 
+
+    return tupleType1.types.every((innerType, index) =>
       areTypesEqual(innerType, tupleType2.types[index])
     );
   }
@@ -41,14 +41,14 @@ export function areTypesEqual(type1: Type, type2: Type): boolean {
   if (type1.type === 'RecordType' && type2.type === 'RecordType') {
     const recordType1 = type1 as RecordType;
     const recordType2 = type2 as RecordType;
-    
+
     if (recordType1.fields.length !== recordType2.fields.length) {
       return false;
     }
-    
+
     return recordType1.fields.every((field1, index) => {
       const field2 = recordType2.fields[index];
-      return field1.name === field2.name && 
+      return field1.name === field2.name &&
              areTypesEqual(field1.getType(), field2.getType());
     });
   }
@@ -57,7 +57,7 @@ export function areTypesEqual(type1: Type, type2: Type): boolean {
   if (type1.type === 'ProcessType' && type2.type === 'ProcessType') {
     const processType1 = type1 as ProcessType;
     const processType2 = type2 as ProcessType;
-    
+
     return areTypesEqual(processType1.intype, processType2.intype) &&
            areTypesEqual(processType1.outtype, processType2.outtype);
   }
@@ -171,36 +171,33 @@ export function getNodeType(node: Expression): Type {
   switch (node.type) {
     case 'NumExpr':
       // Assuming there's a Number type in the type system
-      return { type: 'TypeRef', name: 'Number' };
-    
+      return createTypeRef('Number');
+
     case 'VarExpr':
       return (node as VarExpr).variable.getType();
-    
+
     case 'TupleExpr':
-      return {
-        type: 'TupleType',
-        types: (node as TupleExpr).elements.map(element => getNodeType(element))
-      };
-    
+      return createTupleType((node as TupleExpr).elements.map(element => getNodeType(element)));
+
     case 'RecFieldExpr': {
       const recFieldExpr = node as RecFieldExpr;
       const recordType = getNodeType(recFieldExpr.record);
-      
+
       if (typeof recFieldExpr.field === 'number') {
         // Access by index
         const field = getField(recordType, recFieldExpr.field);
-        return field ? field.getType() : { type: 'AnyType' };
+        return field ? field.getType() : createAnyType();
       } else {
         // Access by name
         const index = getFieldIndex(recordType, recFieldExpr.field);
         if (index >= 0) {
           const field = getField(recordType, index);
-          return field ? field.getType() : { type: 'AnyType' };
+          return field ? field.getType() : createAnyType();
         }
-        return { type: 'AnyType' };
+        return createAnyType();
       }
     }
-    
+
     case 'CondExpr': {
       const condExpr = node as CondExpr;
       // All cases must have the same type, so we just take the first one
@@ -208,26 +205,26 @@ export function getNodeType(node: Expression): Type {
         const firstCase = condExpr.cases[0];
         return getNodeType(firstCase.value);
       }
-      return { type: 'AnyType' };
+      return createAnyType();
     }
-    
+
     case 'OpExpr': {
       const opExpr = node as OpExpr;
       return opExpr.op.getType();
     }
-    
+
     case 'ProcessInst': {
       const processInst = node as ProcessInst;
       if (typeof processInst.processdef === 'string') {
         // Would need to resolve the process name
-        return { type: 'AnyType' };
+        return createAnyType();
       } else {
         return processInst.processdef.getType();
       }
     }
-    
+
     default:
-      return { type: 'AnyType' };
+      return createAnyType();
   }
 }
 
@@ -242,21 +239,21 @@ export function checkVarDecl(declaration: VarDecl | TuplePat, valueType: Type): 
     return areTypesEqual(varDecl.getType(), valueType);
   } else if (declaration.type === 'TuplePat') {
     const tuplePat = declaration as TuplePat;
-    
+
     if (valueType.type !== 'TupleType') {
       return false;
     }
-    
+
     const tupleType = valueType as TupleType;
-    
+
     if (tuplePat.elements.length !== tupleType.types.length) {
       return false;
     }
-    
-    return tuplePat.elements.every((element, index) => 
+
+    return tuplePat.elements.every((element, index) =>
       checkVarDecl(element, tupleType.types[index])
     );
   }
-  
+
   return false;
 }

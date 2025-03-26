@@ -35,8 +35,8 @@ export function addToString<T extends Node>(node: T, toStringFn: (indentation?: 
  * @param name The name of the node type
  * @param fieldnames The field names to include
  */
-export function generateToString(name: string, fieldnames: string[]): (indentation?: number) => string {
-  return function(indentation: number = 0): string {
+export function generateToString(name: string, fieldnames: string[]): (this: any, indentation?: number) => string {
+  return function(this: any, indentation: number = 0): string {
     const node = this;
     const indentSize = indentation;
     const childIndentSize = indentSize + 4;
