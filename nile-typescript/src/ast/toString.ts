@@ -84,147 +84,178 @@ export function generateToString(name: string, fieldnames: string[]): (indentati
 }
 
 /**
- * Add toString methods to all node types
+ * Add toString methods to all node types using prototypes
  * This is called at initialization time to extend the nodes
  */
 export function initToString(): void {
-  // Add toString methods to basic types
-  (PrimType.prototype as any).toString = function(indentation?: number): string {
+  // Modify toString method prototype implementations instead of directly referencing types
+
+  // Store type names to function mappings instead of direct prototype access
+  const typeStringMethods: Record<string, (indentation?: number) => string> = {};
+
+  // Define toString for PrimType
+  typeStringMethods['PrimType'] = function(indentation?: number): string {
     return 'PrimType\n';
   };
 
-  (AnyType.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for AnyType
+  typeStringMethods['AnyType'] = function(indentation?: number): string {
     return 'AnyType\n';
   };
 
-  (TypeRef.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for TypeRef
+  typeStringMethods['TypeRef'] = function(indentation?: number): string {
     if (indentation && indentation > 0) {
       return `"${this.name}"\n`;
     }
     return generateToString('TypeRef', ['name']).call(this, indentation);
   };
 
-  (TupleType.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for TupleType
+  typeStringMethods['TupleType'] = function(indentation?: number): string {
     return generateToString('TupleType', ['types']).call(this, indentation);
   };
 
-  (RecordType.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for RecordType
+  typeStringMethods['RecordType'] = function(indentation?: number): string {
     return generateToString('RecordType', ['fields']).call(this, indentation);
   };
 
-  (ProcessType.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for ProcessType
+  typeStringMethods['ProcessType'] = function(indentation?: number): string {
     return generateToString('ProcessType', ['intype', 'outtype']).call(this, indentation);
   };
 
-  // Add toString methods to declarations
-  (TypeDef.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for TypeDef
+  typeStringMethods['TypeDef'] = function(indentation?: number): string {
     if (indentation && indentation > 0) {
       return this.name;
     }
     return generateToString('TypeDef', ['name', 'definition']).call(this, indentation);
   };
 
-  (VarDecl.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for VarDecl
+  typeStringMethods['VarDecl'] = function(indentation?: number): string {
     return `${this.name}:${this.varType.toString(indentation)}`;
   };
 
-  (TuplePat.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for TuplePat
+  typeStringMethods['TuplePat'] = function(indentation?: number): string {
     return generateToString('TuplePat', ['elements']).call(this, indentation);
   };
 
-  // Add toString methods to expressions
-  (NumExpr.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for NumExpr
+  typeStringMethods['NumExpr'] = function(indentation?: number): string {
     if (indentation && indentation > 0) {
       return `${this.value}\n`;
     }
     return generateToString('NumExpr', ['value']).call(this, indentation);
   };
 
-  (VarExpr.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for VarExpr
+  typeStringMethods['VarExpr'] = function(indentation?: number): string {
     return generateToString('VarExpr', ['variable']).call(this, indentation);
   };
 
-  (TupleExpr.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for TupleExpr
+  typeStringMethods['TupleExpr'] = function(indentation?: number): string {
     return generateToString('TupleExpr', ['elements']).call(this, indentation);
   };
 
-  (CondCase.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for CondCase
+  typeStringMethods['CondCase'] = function(indentation?: number): string {
     return generateToString('CondCase', ['value', 'condition']).call(this, indentation);
   };
 
-  (CondExpr.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for CondExpr
+  typeStringMethods['CondExpr'] = function(indentation?: number): string {
     return generateToString('CondExpr', ['cases', 'otherwise']).call(this, indentation);
   };
 
-  (RecFieldExpr.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for RecFieldExpr
+  typeStringMethods['RecFieldExpr'] = function(indentation?: number): string {
     return generateToString('RecFieldExpr', ['record', 'field']).call(this, indentation);
   };
 
-  (OpExpr.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for OpExpr
+  typeStringMethods['OpExpr'] = function(indentation?: number): string {
     return generateToString('OpExpr', ['op', 'fixity', 'arg']).call(this, indentation);
   };
 
-  // Add toString methods to operations and processes
-  (OpSig.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for OpSig
+  typeStringMethods['OpSig'] = function(indentation?: number): string {
     if (indentation && indentation > 5) {
       return `${this.name} ${this.param.toString(indentation)}`;
     }
     return generateToString('OpSig', ['name', 'fixity', 'param', 'returnType']).call(this, indentation);
   };
 
-  (OpDef.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for OpDef
+  typeStringMethods['OpDef'] = function(indentation?: number): string {
     if (indentation && indentation > 0) {
       return this.sig.toString(indentation);
     }
     return generateToString('OpDef', ['sig', 'body']).call(this, indentation);
   };
 
-  (ProcessSig.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for ProcessSig
+  typeStringMethods['ProcessSig'] = function(indentation?: number): string {
     if (indentation && indentation > 5) {
       return `${this.name}\n`;
     }
     return generateToString('ProcessSig', ['name', 'param', 'processType']).call(this, indentation);
   };
 
-  (ProcessDef.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for ProcessDef
+  typeStringMethods['ProcessDef'] = function(indentation?: number): string {
     if (indentation && indentation > 0) {
       return this.sig.toString(indentation);
     }
     return generateToString('ProcessDef', ['sig', 'prologue', 'body', 'epilogue']).call(this, indentation);
   };
 
-  (ProcessInst.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for ProcessInst
+  typeStringMethods['ProcessInst'] = function(indentation?: number): string {
     return generateToString('ProcessInst', ['processdef', 'arg']).call(this, indentation);
   };
 
-  (Pipeline.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for Pipeline
+  typeStringMethods['Pipeline'] = function(indentation?: number): string {
     return generateToString('Pipeline', ['producer', 'consumer']).call(this, indentation);
   };
 
-  // Add toString methods to statements and blocks
-  (VarDef.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for VarDef
+  typeStringMethods['VarDef'] = function(indentation?: number): string {
     return generateToString('VarDef', ['lvalue', 'rvalue']).call(this, indentation);
   };
 
-  (Block.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for Block
+  typeStringMethods['Block'] = function(indentation?: number): string {
     return generateToString('Block', ['vardefs', 'stmts']).call(this, indentation);
   };
 
-  (InStmt.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for InStmt
+  typeStringMethods['InStmt'] = function(indentation?: number): string {
     return generateToString('InStmt', ['values']).call(this, indentation);
   };
 
-  (OutStmt.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for OutStmt
+  typeStringMethods['OutStmt'] = function(indentation?: number): string {
     return generateToString('OutStmt', ['values']).call(this, indentation);
   };
 
-  (IfStmt.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for IfStmt
+  typeStringMethods['IfStmt'] = function(indentation?: number): string {
     return generateToString('IfStmt', ['condition', 'thenBlock', 'elseBlock']).call(this, indentation);
   };
 
-  (SubStmt.prototype as any).toString = function(indentation?: number): string {
+  // Define toString for SubStmt
+  typeStringMethods['SubStmt'] = function(indentation?: number): string {
     return generateToString('SubStmt', ['pipeline']).call(this, indentation);
   };
+
+  // Store the methods for use in applyToString
+  (global as any).__nileToStringMethods = typeStringMethods;
 }
 
 /**
@@ -235,65 +266,12 @@ export function initToString(): void {
 export function applyToString(node: Node): Node & ToStringCapable {
   if (!node) return node as Node & ToStringCapable;
 
-  switch (node.type) {
-    case 'PrimType':
-      return addToString(node, (PrimType.prototype as any).toString);
-    case 'AnyType':
-      return addToString(node, (AnyType.prototype as any).toString);
-    case 'TypeRef':
-      return addToString(node, (TypeRef.prototype as any).toString);
-    case 'TupleType':
-      return addToString(node, (TupleType.prototype as any).toString);
-    case 'RecordType':
-      return addToString(node, (RecordType.prototype as any).toString);
-    case 'ProcessType':
-      return addToString(node, (ProcessType.prototype as any).toString);
-    case 'TypeDef':
-      return addToString(node, (TypeDef.prototype as any).toString);
-    case 'VarDecl':
-      return addToString(node, (VarDecl.prototype as any).toString);
-    case 'TuplePat':
-      return addToString(node, (TuplePat.prototype as any).toString);
-    case 'NumExpr':
-      return addToString(node, (NumExpr.prototype as any).toString);
-    case 'VarExpr':
-      return addToString(node, (VarExpr.prototype as any).toString);
-    case 'TupleExpr':
-      return addToString(node, (TupleExpr.prototype as any).toString);
-    case 'CondCase':
-      return addToString(node, (CondCase.prototype as any).toString);
-    case 'CondExpr':
-      return addToString(node, (CondExpr.prototype as any).toString);
-    case 'RecFieldExpr':
-      return addToString(node, (RecFieldExpr.prototype as any).toString);
-    case 'OpExpr':
-      return addToString(node, (OpExpr.prototype as any).toString);
-    case 'OpSig':
-      return addToString(node, (OpSig.prototype as any).toString);
-    case 'OpDef':
-      return addToString(node, (OpDef.prototype as any).toString);
-    case 'ProcessSig':
-      return addToString(node, (ProcessSig.prototype as any).toString);
-    case 'ProcessDef':
-      return addToString(node, (ProcessDef.prototype as any).toString);
-    case 'ProcessInst':
-      return addToString(node, (ProcessInst.prototype as any).toString);
-    case 'Pipeline':
-      return addToString(node, (Pipeline.prototype as any).toString);
-    case 'VarDef':
-      return addToString(node, (VarDef.prototype as any).toString);
-    case 'Block':
-      return addToString(node, (Block.prototype as any).toString);
-    case 'InStmt':
-      return addToString(node, (InStmt.prototype as any).toString);
-    case 'OutStmt':
-      return addToString(node, (OutStmt.prototype as any).toString);
-    case 'IfStmt':
-      return addToString(node, (IfStmt.prototype as any).toString);
-    case 'SubStmt':
-      return addToString(node, (SubStmt.prototype as any).toString);
-    default:
-      // For unknown node types, use a generic toString
-      return addToString(node, generateToString(node.type, Object.keys(node)));
+  const typeStringMethods = (global as any).__nileToStringMethods || {};
+
+  if (typeStringMethods[node.type]) {
+    return addToString(node, typeStringMethods[node.type]);
   }
+
+  // For unknown node types, use a generic toString
+  return addToString(node, generateToString(node.type, Object.keys(node)));
 }

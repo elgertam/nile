@@ -26,31 +26,43 @@ export interface Type extends Node {
 
 export interface PrimType extends Type {
   type: 'PrimType';
+  size(): number | null;
+  isEqual(other: Type): boolean;
 }
 
 export interface AnyType extends Type {
   type: 'AnyType';
+  size(): number | null;
+  isEqual(other: Type): boolean;
 }
 
 export interface TupleType extends Type {
   type: 'TupleType';
   types: Type[];
+  size(): number | null;
+  isEqual(other: Type): boolean;
 }
 
 export interface RecordType extends Type {
   type: 'RecordType';
   fields: VarDecl[];
+  size(): number | null;
+  isEqual(other: Type): boolean;
 }
 
 export interface ProcessType extends Type {
   type: 'ProcessType';
   intype: Type;
   outtype: Type;
+  size(): number | null;
+  isEqual(other: Type): boolean;
 }
 
 export interface TypeRef extends Type {
   type: 'TypeRef';
   name: string;
+  size(): number | null;
+  isEqual(other: Type): boolean;
 }
 
 export interface TypeDef extends Node {
@@ -232,29 +244,86 @@ export interface SubStmt extends Statement {
   pipeline: Pipeline;
 }
 
-// Factory functions for creating AST nodes
+// Factory functions for creating AST nodes with proper implementation of required methods
 export function createPrimType(location?: SourceLocation): PrimType {
-  return { type: 'PrimType', location };
+  return {
+    type: 'PrimType',
+    location,
+    size: () => null,
+    isEqual: (other) => other.type === 'PrimType'
+  };
 }
 
 export function createAnyType(location?: SourceLocation): AnyType {
-  return { type: 'AnyType', location };
+  return {
+    type: 'AnyType',
+    location,
+    size: () => null,
+    isEqual: (other) => other.type === 'AnyType'
+  };
 }
 
 export function createTupleType(types: Type[], location?: SourceLocation): TupleType {
-  return { type: 'TupleType', types, location };
+  return {
+    type: 'TupleType',
+    types,
+    location,
+    size: () => types.length,
+    isEqual: (other) => {
+      if (other.type !== 'TupleType') return false;
+      const otherTuple = other as TupleType;
+      if (types.length !== otherTuple.types.length) return false;
+      return types.every((t, i) => t.isEqual(otherTuple.types[i]));
+    }
+  };
 }
 
 export function createRecordType(fields: VarDecl[], location?: SourceLocation): RecordType {
-  return { type: 'RecordType', fields, location };
+  return {
+    type: 'RecordType',
+    fields,
+    location,
+    size: () => fields.length,
+    isEqual: (other) => {
+      if (other.type !== 'RecordType') return false;
+      const otherRecord = other as RecordType;
+      if (fields.length !== otherRecord.fields.length) return false;
+      return fields.every((f, i) =>
+        f.name === otherRecord.fields[i].name &&
+        f.getType().isEqual(otherRecord.fields[i].getType())
+      );
+    }
+  };
 }
 
 export function createProcessType(intype: Type, outtype: Type, location?: SourceLocation): ProcessType {
-  return { type: 'ProcessType', intype, outtype, location };
+  return {
+    type: 'ProcessType',
+    intype,
+    outtype,
+    location,
+    size: () => null,
+    isEqual: (other) => {
+      if (other.type !== 'ProcessType') return false;
+      const otherProcess = other as ProcessType;
+      return intype.isEqual(otherProcess.intype) && outtype.isEqual(otherProcess.outtype);
+    },
+    getIntype: () => intype,
+    getOuttype: () => outtype
+  };
 }
 
 export function createTypeRef(name: string, location?: SourceLocation): TypeRef {
-  return { type: 'TypeRef', name, location };
+  return {
+    type: 'TypeRef',
+    name,
+    location,
+    size: () => null, // Size would depend on the actual type
+    isEqual: (other) => {
+      if (other.type !== 'TypeRef') return false;
+      return name === (other as TypeRef).name;
+    }
+  };
 }
 
 export function createTypeDef(name: string, definition: Type, location?: SourceLocation): TypeDef {
@@ -262,21 +331,22 @@ export function createTypeDef(name: string, definition: Type, location?: SourceL
 }
 
 export function createVarDecl(name: string, varType: Type, location?: SourceLocation): VarDecl {
-  return { 
-    type: 'VarDecl', 
-    name, 
-    varType, 
+  return {
+    type: 'VarDecl',
+    name,
+    varType,
     location,
     getType: () => varType
   };
 }
 
 export function createTuplePat(elements: VarDecl[], location?: SourceLocation): TuplePat {
-  return { 
-    type: 'TuplePat', 
-    elements, 
+  const types = elements.map(e => e.getType());
+  return {
+    type: 'TuplePat',
+    elements,
     location,
-    getType: () => createTupleType(elements.map(e => e.getType()))
+    getType: () => createTupleType(types)
   };
 }
 
@@ -285,19 +355,19 @@ export function createVarDef(lvalue: VarDecl | TuplePat, rvalue: Expression, loc
 }
 
 export function createNumExpr(value: number, location?: SourceLocation): NumExpr {
-  return { 
-    type: 'NumExpr', 
-    value, 
+  return {
+    type: 'NumExpr',
+    value,
     location,
     getType: () => createTypeRef('Number')
   };
 }
 
 export function createBlock(vardefs: VarDef[], stmts: Statement[], location?: SourceLocation): Block {
-  return { 
-    type: 'Block', 
-    vardefs, 
-    stmts, 
+  return {
+    type: 'Block',
+    vardefs,
+    stmts,
     location,
     isEmpty: () => vardefs.length === 0 && stmts.length === 0
   };
